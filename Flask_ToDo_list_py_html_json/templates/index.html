@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>To-Do List</title>
+  <style>
+    :root {
+      box-sizing: border-box;
+      --bg: #f4f3f1;
+      --card-bg: #ffffff;
+      --text: #1f1f1f;
+      --text-muted: #6b6b6b;
+      --accent: #e0623a;
+      --accent-hover: #c94f2b;
+      --border: #e5e3df;
+      --done-bg: #f0efec;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1a1a1a;
+        --card-bg: #242424;
+        --text: #f0f0f0;
+        --text-muted: #a0a0a0;
+        --accent: #e8734a;
+        --accent-hover: #f08657;
+        --border: #383838;
+        --done-bg: #2c2c2c;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif; display: flex;
+      justify-content: center; padding: 32px 16px;
+    }
+    .app { width: 100%; max-width: 520px; }
+    header { text-align: center; margin-bottom: 24px; }
+    header h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    header p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .add-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .add-row input[type="text"] {
+      flex: 1; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: 0.95rem; outline: none;
+    }
+    .add-row button {
+      padding: 12px 18px; border: none; border-radius: 10px;
+      background: var(--accent); color: white; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer;
+    }
+    .filters { display: flex; gap: 6px; margin-bottom: 16px; }
+    .filters a {
+      flex: 1; padding: 8px 10px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); border-radius: 8px;
+      font-size: 0.85rem; text-decoration: none; text-align: center;
+    }
+    .filters a.active {
+      background: var(--accent); border-color: var(--accent); color: white;
+    }
+    ul.task-list {
+      list-style: none; margin: 0; padding: 0; display: flex;
+      flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;
+    }
+    li.task {
+      display: flex; align-items: center; gap: 10px; padding: 12px;
+      border-radius: 10px; border: 1px solid var(--border); background: var(--bg);
+    }
+    li.task.done { background: var(--done-bg); }
+    li.task.done .task-title { text-decoration: line-through; color: var(--text-muted); }
+    .checkbox {
+      width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; color: white; font-size: 13px; text-decoration: none;
+    }
+    li.task.done .checkbox { background: var(--accent); }
+    .task-title { flex: 1; word-break: break-word; font-size: 0.95rem; }
+    .delete-btn { color: var(--text-muted); text-decoration: none; font-size: 1.1rem; padding: 4px 6px; }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 32px 8px; font-size: 0.9rem; }
+    .footer-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+      font-size: 0.82rem; color: var(--text-muted);
+    }
+    /* เวลาที่กำกับไว้ท้ายข้อความ */
+    .task-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: 8px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>📝 To-Do List</h1>
+    <p>จัดการงานของคุณให้เป็นระเบียบ</p>
+  </header>
+
+  <div class="card">
+    <!-- ฟอร์มเพิ่มงาน -->
+    <form action="/add" method="POST" class="add-row">
+      <input type="hidden" name="filter" value="{{ current_filter }}">
+      <input type="text" name="title" placeholder="พิมพ์งานที่ต้องทำ..." maxlength="200" required>
+      <button type="submit">เพิ่ม</button>
+    </form>
+
+    <!-- ปุ่มสลับ Filter -->
+    <div class="filters">
+      <a href="/?filter=all" class="{% if current_filter == 'all' %}active{% endif %}">ทั้งหมด</a>
+      <a href="/?filter=active" class="{% if current_filter == 'active' %}active{% endif %}">ยังไม่เสร็จ</a>
+      <a href="/?filter=done" class="{% if current_filter == 'done' %}active{% endif %}">เสร็จแล้ว</a>
+    </div>
+
+    <!-- รายการงาน -->
+    <ul class="task-list">
+      {% for task in tasks %}
+        <li class="task {% if task.done %}done{% endif %}">
+          <a href="/toggle/{{ task.id }}?filter={{ current_filter }}" class="checkbox">{% if task.done %}✓{% endif %}</a>
+
+          <span class="task-title">{{ task.title }}
+            {% if task.created_at %}
+              <span class="task-time">({{ task.created_at }})</span>
+            {% endif %}
+          </span>
+
+          <a href="/delete/{{ task.id }}?filter={{ current_filter }}" class="delete-btn">✕</a>
+        </li>
+      {% else %}
+        <div class="empty-state">ยังไม่มีรายการงานเลยครับ/ค่ะ ✨</div>
+      {% endfor %}
+    </ul>
+
+    <!-- Footer สรุปผล -->
+    <div class="footer-bar">
+      <span>{{ total_count }} งาน (เสร็จแล้ว {{ done_count }})</span>
+      <a href="/clear_done?filter={{ current_filter }}" style="color:var(--accent); text-decoration:none;">ล้างงานที่เสร็จแล้ว</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>
